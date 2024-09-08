@@ -1,19 +1,33 @@
 <template>
   <q-drawer v-model="openDrawer" class="q-pt-sm tw-bg-secondarybg dd-scroll" show-if-above>
     <div class="tw-m-5">
-      <div @dragover.prevent @drop="handleDrop"
-           class="tw-flex tw-flex-col tw-gap-2 tw-items-center tw-p-5 tw-bg-tertiarybg tw-rounded-3xl">
+      <div class="tw-flex tw-flex-col tw-gap-2 tw-items-center tw-p-5 tw-bg-tertiarybg tw-rounded-3xl">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
              class="tw-w-9 tw-h-9 tw-text-primarytext">
           <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/>
+                d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
         </svg>
-        <span class="tw-text-primarytext tw-font-medium tw-text-lg">Drag & Drop Files Here</span>
-        <span class="tw-text-primarytext">or</span>
-        <button @click="$refs.uploaderref.pickFiles();" type="button"
-                class="tw-rounded-lg tw-border-2 tw-border-hara tw-bg-transparent tw-px-9 tw-py-2 tw-text-sm tw-font-semibold tw-text-hara hover:tw-bg-secondarybg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-          Browse
-        </button>
+
+        <span class="tw-text-primarytext tw-text-sm tw-font-semibold">Weekly Service Worksheet</span>
+
+          <button @click="$refs.uploaderref.pickFiles(category = 'WeeklyWorkSheet');" type="button"
+                  class="tw-rounded-lg tw-border tw-border-hara tw-bg-transparent tw-px-4 tw-py-2 tw-text-sm tw-font-semibold tw-text-hara hover:tw-bg-secondarybg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            Upload
+          </button>
+      </div>
+      <div class="tw-flex tw-flex-col tw-gap-2 tw-items-center tw-mt-3 tw-p-5 tw-bg-tertiarybg tw-rounded-3xl">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+             class="tw-w-9 tw-h-9 tw-text-primarytext">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+
+        <span class="tw-text-primarytext tw-text-sm tw-font-semibold">Current employee payroll rate</span>
+
+          <button @click="$refs.uploaderref.pickFiles(category = 'PayrollRate');" type="button"
+                  class="tw-rounded-lg tw-border tw-border-hara tw-bg-transparent tw-px-4 tw-py-2 tw-text-sm tw-font-semibold tw-text-hara hover:tw-bg-secondarybg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            Upload
+          </button>
       </div>
       <q-item-label class="tw-text-white tw-mt-9 tw-mb-7 tw-text-base tw-font-normal">My Files</q-item-label>
       <template v-for="(table, index) in tables" :key="index">
@@ -105,7 +119,7 @@
     </template>
   </q-uploader>
   <q-page class="q-pa-sm tw-bg-dark tw-flex tw-flex-col">
-    <q-card-section class="tw-flex-1 tw-flex tw-flex-col">
+    <!-- <q-card-section class="tw-flex-1 tw-flex tw-flex-col">
       <div v-if="$q.platform.is.mobile">
         <button type="button" class="tw-py-2 tw-px-6 tw-border-hara tw-bg-transparent q-mb-md tw-text-hara tw-rounded-lg tw-border-2" @click="openDrawer=true" no-caps>Upload</button>
       </div>
@@ -147,9 +161,8 @@
 
         </div>
       </div>
-      <!-- <div><q-btn flat color="primary" label="Filter records" class="q-ml-lg q-mt-sm" @click="search" no-caps></q-btn></div> -->
 
-    </q-card-section>
+    </q-card-section> -->
     <q-card-section class="tw-flex-1">
       <div class="tw-flex tw-justify-end tw-mb-3 tw-gap-3">
         <button @click="uploadSampleFile" type="button"
@@ -161,45 +174,137 @@
           Download Results
         </button>
       </div>
-      <q-table
-        dark
-        flat
-        color="#101010"
-        :rows="rows"
-        row-key="name"
-        style=""
-        class="dd-scroll tw-rounded-xl tw-border tw-border-editorborder"
-      >
-        <template v-slot:header="props">
-          <q-tr :props="props" class="tw-bg-primarybg tw-border-b">
-            <q-th
-              v-for="col in props.cols"
-              :key="col.name"
-              :props="props"
-              class="tw-text-sm tw-font-normal tw-text-primarytext"
-            >
-              {{ col.label }}
-            </q-th>
-          </q-tr>
-        </template>
-        <template v-slot:body="props">
-          <q-tr :props="props" :class="props.pageIndex % 2===0 ? 'tw-bg-tablebg' : 'tw-bg-primarybg'">
-            <q-td
-              v-for="col in props.cols"
-              :key="col.name"
-              :props="props"
-              class="tw-text-sm tw-font-normal tw-text-primarytext"
-            >
-              {{ props.row[col.name] }}
+      <q-tabs
+      v-model="activeTab"
+      dense
+      class="text-grey"
+      active-color="primary"
+      indicator-color="primary"
+      align="justify"
+      narrow-indicator
+      no-caps
+    >
+      <q-tab name="tab1" :label="selection || 'Tab 1'" />
+      <q-tab name="tab2" label="Tab 2" />
+      <q-tab name="tab3" label="Tab 3" />
+    </q-tabs>
 
-            </q-td>
-          </q-tr>
-        </template>
-      </q-table>
+    <q-tab-panels v-model="activeTab"           dark
+    flat animated>
+      <q-tab-panel name="tab1"  class="q-pa-none">
+        <q-table
+          dark
+          flat
+          color="#101010"
+          :rows="rows"
+          row-key="name"
+          class="dd-scroll tw-rounded-xl tw-border tw-border-editorborder"
+        >
+          <!-- Table content for Tab 1 -->
+          <template v-slot:header="props">
+            <q-tr :props="props" class="tw-bg-primarybg tw-border-b">
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                class="tw-text-sm tw-font-normal tw-text-primarytext"
+              >
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props" :class="props.pageIndex % 2 === 0 ? 'tw-bg-tablebg' : 'tw-bg-primarybg'">
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                class="tw-text-sm tw-font-normal tw-text-primarytext"
+              >
+                {{ props.row[col.name] }}
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </q-tab-panel>
+
+      <q-tab-panel name="tab2" class="q-pa-none">
+        <q-table
+          dark
+          flat
+          color="#101010"
+          :rows="rows2"
+          row-key="name"
+          class="dd-scroll tw-rounded-xl tw-border tw-border-editorborder"
+        >
+                    <!-- Table content for Tab 2 -->
+           <template v-slot:header="props">
+            <q-tr :props="props" class="tw-bg-primarybg tw-border-b">
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                class="tw-text-sm tw-font-normal tw-text-primarytext"
+              >
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props" :class="props.pageIndex % 2 === 0 ? 'tw-bg-tablebg' : 'tw-bg-primarybg'">
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                class="tw-text-sm tw-font-normal tw-text-primarytext"
+              >
+                {{ props.row[col.name] }}
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </q-tab-panel>
+
+      <q-tab-panel name="tab3" class="q-pa-none">
+        <q-table
+          dark
+          flat
+          color="#101010"
+          :rows="rows3"
+          row-key="name"
+          class="dd-scroll tw-rounded-xl tw-border tw-border-editorborder"
+        >
+          <template v-slot:header="props">
+            <q-tr :props="props" class="tw-bg-primarybg tw-border-b">
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                class="tw-text-sm tw-font-normal tw-text-primarytext"
+              >
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props" :class="props.pageIndex % 2 === 0 ? 'tw-bg-tablebg' : 'tw-bg-primarybg'">
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                class="tw-text-sm tw-font-normal tw-text-primarytext"
+              >
+                {{ props.row[col.name] }}
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </q-tab-panel>
+    </q-tab-panels>
     </q-card-section>
     <div class="tw-flex">
       <div class="tw-flex-grow text-white">
-        Made with <q-icon name="favorite" size="xs" color="red"/> in India
+
       </div>
       <div class="tw-flex text-white">
         <span>Powered by DuckDB </span>
@@ -213,7 +318,7 @@
       <q-card class="get-started-card tw-bg-editorborder tw-px-10">
         <img src="/welcome-duck.png" alt="duck">
         <div class="row full-width text-center tw-text-primarytext tw-text-3xl tw-font-bold">
-            Run SQL queries on your CSV files in browser
+            In Browser Simple payroll compute
                       </div>
         <q-card-section class="tw-text-primarytext" style="padding:0 20px 0 20px">
           <div>
@@ -298,6 +403,7 @@ export default defineComponent({
   data() {
     return {
       file: ref([]),
+      worksheet_file: ref([]),
       columns: [],
       rows: [],
       query: ref(''),
@@ -312,7 +418,13 @@ export default defineComponent({
       openDrawer: ref(false),
       tableNameSuggestions: ["table1", "table2", "table3"],
       counter:0,
-      sample_csv: ref(sample_csv)
+      sample_csv: ref(sample_csv),
+      activeTab: 'tab1',
+      rows1: [],
+      rows2: [],
+      filled_rows: [],
+      final_report: [],
+      rows3: []
     }
   },
   components: {
@@ -355,72 +467,100 @@ export default defineComponent({
     },
     selectTable(name) {
       this.selection = name
-      this.query = `SELECT * FROM ${name} LIMIT 10;`
+      this.query = `SELECT * FROM ${name};`
       this.search();
     },
     files(files) {
       this.file = files[0];
-      this.upload();
+      this.upload(this.category);
     },
+    pickFiles(category) {
+      // Store the file type for later use
+      this.category = category;
+      // Call the original pickFiles method
+      this.$refs.uploaderref.$el.pickFiles();
+    },
+
+
     async upload() {
+      console.log(this.category)
       this.columns = []
       let fileReader = new FileReader();
       let text = "";
       let name = this.file.name.split(".")[0];
-      let fileType = this.file.name.split(".")[1];
-      if (fileType !== 'csv') {
-        this.$refs.uploaderref.reset();
-        this.$q.notify({type: 'negative', message: `Apologies! At this moment we only support CSV file.`, position: 'top'});
-        return
-      }
+      let fileType = this.file.name.split(".")[1].toLowerCase();
+
       name = name.replace(/[^a-zA-Z0-9]/g, "_");
-      fileReader.readAsText(this.file)
+
+      if (fileType === 'xls' || fileType === 'xlsx') {
+        fileReader.onload = async (e) => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          text = XLSX.utils.sheet_to_csv(worksheet);
+          await this.processCSV(this.category, text);
+        };
+        fileReader.readAsArrayBuffer(this.file);
+      } else if (fileType === 'csv') {
+        fileReader.onload = async () => {
+          text = fileReader.result;
+          await this.processCSV(this.category, text);
+        };
+        fileReader.readAsText(this.file);
+      } else {
+        this.$refs.uploaderref.reset();
+        this.$q.notify({type: 'negative', message: `Apologies! At this moment we only support CSV, XLS, and XLSX files.`, position: 'top'});
+        return;
+      }
+    },
+
+    async processCSV(name, text) {
       let self = this;
       let cont = true;
-      fileReader.onload = async function () {
-        text = fileReader.result
-        await self.$db.registerFileText("sample_table.csv", text);
-        self.tables.filter((table) => {
-          if (table.name == name) {
-            cont = false;
-            self.$refs.uploaderref.reset();
-            self.$q.notify({type: 'negative', message: `Table with name "${name}" Already Exists`, position: 'top'});
-          }
-        });
-        if (cont) {
-          self.$q.loading.show();
-          await self.$conn.query(`CREATE TABLE ${name} AS
-          SELECT *
-          FROM read_csv_auto('sample_table.csv');`);
+
+      await self.$db.registerFileText("sample_table.csv", text);
+      self.tables.filter((table) => {
+        if (table.name == name) {
+          cont = false;
           self.$refs.uploaderref.reset();
-          self.selectTable(name);
-          const stmt1 = await self.$conn.prepare(`SELECT CAST(COUNT(*) AS INT)
-                                                  FROM ${name}`)
-          const res1 = await stmt1.query()
-          const stmt2 = await self.$conn.prepare(`SELECT COLUMN_NAME, DATA_TYPE
-                                                  FROM INFORMATION_SCHEMA.COLUMNS
-                                                  WHERE TABLE_NAME = '${name}'`)
-          const res2 = await stmt2.query()
-          let len = Object.values(JSON.parse(JSON.stringify(res1.toArray()))[0])[0]
-          let columns = JSON.parse(JSON.stringify(res2.toArray()))
-          console.log(columns)
-          self.tables.push({
-            name: name, header: 'root', toggle: false, length: len, children: columns.map((obj) => {
-              let icon = 'tag'
-              if (["BIGINT","INTEGER"].includes(obj['data_type'])) {
-                icon = 'tag'
-              }
-              else if (obj['data_type'] === "VARCHAR") {
-                icon = 'abc'
-              } else if (['DATE',"TIMESTAMP"].includes(obj['data_type'])) {
-                icon = 'calendar_month'
-              }
-              return {label: obj['column_name'], icon: icon, header: 'generic'}
-            })
-          })
-          self.$q.loading.hide();
-          self.counter++;
+          self.$q.notify({type: 'negative', message: `Table "${name}" Already Exists`, position: 'top'});
         }
+      });
+
+      if (cont) {
+        self.$q.loading.show();
+        await self.$conn.query(`CREATE TABLE ${name} AS
+        SELECT *
+        FROM read_csv_auto('sample_table.csv', skip=3);`);
+        self.$refs.uploaderref.reset();
+        self.selectTable(name);
+        const stmt1 = await self.$conn.prepare(`SELECT CAST(COUNT(*) AS INT)
+                                                FROM ${name}`)
+        const res1 = await stmt1.query()
+        const stmt2 = await self.$conn.prepare(`SELECT COLUMN_NAME, DATA_TYPE
+                                                FROM INFORMATION_SCHEMA.COLUMNS
+                                                WHERE TABLE_NAME = '${name}'`)
+        const res2 = await stmt2.query()
+        let len = Object.values(JSON.parse(JSON.stringify(res1.toArray()))[0])[0]
+        let columns = JSON.parse(JSON.stringify(res2.toArray()))
+        console.log(columns)
+        self.tables.push({
+          name: name, header: 'root', toggle: false, length: len, children: columns.map((obj) => {
+            let icon = 'tag'
+            if (["BIGINT","INTEGER"].includes(obj['data_type'])) {
+              icon = 'tag'
+            }
+            else if (obj['data_type'] === "VARCHAR") {
+              icon = 'abc'
+            } else if (['DATE',"TIMESTAMP"].includes(obj['data_type'])) {
+              icon = 'calendar_month'
+            }
+            return {label: obj['column_name'], icon: icon, header: 'generic'}
+          })
+        })
+        self.$q.loading.hide();
+        self.counter++;
       }
     },
     async search() {
