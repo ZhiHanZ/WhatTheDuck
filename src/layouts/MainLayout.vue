@@ -3,7 +3,7 @@
     <q-header class="tw-bg-primarybg tw-h-14" style="">
       <div class="tw-flex tw-justify-between tw-h-full tw-items-center tw-px-5">
         <div class="tw-flex tw-items-center">
-          <img src="/logo.svg" class="tw-h-6 tw-my-auto"/> <span class="tw-mt-3 tw-ml-1.5">by <a href="https://incentius.com/" target="_blank" class="tw-text-hara">incentius.com</a></span>
+          <img src="/nextpack.png" class="tw-h-6 tw-my-auto"/> <span class="tw-mt-3 tw-ml-1.5">by <a href="https://nextpackinc.com/" target="_blank" class="tw-text-hara">nextpackinc.com</a></span>
         </div>
         <div class="tw-flex tw-items-center tw-gap-9">
           <div @click="openPopUp()" class="tw-flex tw-items-center tw-justify-between tw-gap-12">
@@ -18,7 +18,6 @@
               </span>
             </div>
           </div>
-          <a href="https://github.com/incentius-foss/WhatTheDuck" target="_blank"><q-icon class="tw-text-hara hover:tw-text-morehara" size="sm" name="fa-brands fa-github"/></a>
         </div>
       </div>
     </q-header>

@@ -233,7 +233,7 @@
           dark
           flat
           color="#101010"
-          :rows="rows2"
+          :rows="rows3"
           row-key="name"
           class="dd-scroll tw-rounded-xl tw-border tw-border-editorborder"
         >
@@ -251,7 +251,10 @@
             </q-tr>
           </template>
           <template v-slot:body="props">
-            <q-tr :props="props" :class="props.pageIndex % 2 === 0 ? 'tw-bg-tablebg' : 'tw-bg-primarybg'">
+            <q-tr :props="props" :class="[
+              props.pageIndex % 2 === 0 ? 'tw-bg-tablebg' : 'tw-bg-primarybg',
+              getSharedDriverRowClass(props.rowIndex)
+            ]">
               <q-td
                 v-for="col in props.cols"
                 :key="col.name"
@@ -270,7 +273,7 @@
           dark
           flat
           color="#101010"
-          :rows="rows3"
+          :rows="final_report"
           row-key="name"
           class="dd-scroll tw-rounded-xl tw-border tw-border-editorborder"
         >
@@ -424,7 +427,10 @@ export default defineComponent({
       rows2: [],
       filled_rows: [],
       final_report: [],
-      rows3: []
+      rows3: [],
+      shared_route_row_index: [],
+      shared_route_driver_index: [],
+      highlightedRows: [1, 3, 5] // List of row numbers to highlight (0-based index)
     }
   },
   components: {
@@ -517,34 +523,99 @@ export default defineComponent({
 
     async processCSV(name, text) {
       let self = this;
-      let cont = true;
+      let tableExists = false;
 
       await self.$db.registerFileText("sample_table.csv", text);
-      self.tables.filter((table) => {
+      self.tables.forEach((table) => {
         if (table.name == name) {
-          cont = false;
-          self.$refs.uploaderref.reset();
-          self.$q.notify({type: 'negative', message: `Table "${name}" Already Exists`, position: 'top'});
+          tableExists = true;
         }
       });
 
-      if (cont) {
-        self.$q.loading.show();
-        await self.$conn.query(`CREATE TABLE ${name} AS
-        SELECT *
-        FROM read_csv_auto('sample_table.csv', skip=3);`);
+      if (tableExists) {
+        // Instead of using a dialog, we'll use a confirm method
+        if (!confirm(`Table "${name}" already exists. Do you want to replace it?`)) {
+          self.$refs.uploaderref.reset();
+          self.$q.notify({type: 'info', message: `Upload cancelled`, position: 'top'});
+          return;
+        }
+        // If we reach here, user clicked OK
+        // Remove the existing table from the list
+      }
+
+      self.$q.loading.show();
+      try {
+        // Drop the existing table if it exists
+        await self.$conn.query(`DROP TABLE IF EXISTS raw_${name};`);
+        let query;
+        if (name === 'WeeklyWorkSheet') {
+          query = `CREATE TABLE raw_${name} AS
+          SELECT *
+          FROM read_csv_auto('sample_table.csv', header=true, skip=3);`;
+        } else if (name === 'PayrollRate') {
+          query = `CREATE TABLE raw_${name} AS
+          SELECT *
+          FROM read_csv_auto('sample_table.csv');`;
+        } else {
+          query = `CREATE TABLE raw_${name} AS
+          SELECT *
+          FROM read_csv_auto('sample_table.csv');`;
+        }
+
+        await self.$conn.query(query);
         self.$refs.uploaderref.reset();
-        self.selectTable(name);
+
         const stmt1 = await self.$conn.prepare(`SELECT CAST(COUNT(*) AS INT)
-                                                FROM ${name}`)
+                                                FROM raw_${name}`)
         const res1 = await stmt1.query()
         const stmt2 = await self.$conn.prepare(`SELECT COLUMN_NAME, DATA_TYPE
                                                 FROM INFORMATION_SCHEMA.COLUMNS
-                                                WHERE TABLE_NAME = '${name}'`)
+                                                WHERE TABLE_NAME = 'raw_${name}'`)
         const res2 = await stmt2.query()
         let len = Object.values(JSON.parse(JSON.stringify(res1.toArray()))[0])[0]
         let columns = JSON.parse(JSON.stringify(res2.toArray()))
         console.log(columns)
+        // Verify columns
+        const expectedColumns = {
+          'WeeklyWorkSheet': ['Date', 'WA Name', 'Svc Area #', 'Veh #', 'Driver/ Helper Name'],
+          'PayrollRate': ['NAME', 'FEDEX ID', 'Rate by Day', 'Rate by Week'],
+          // Add more expected column sets for other table types if needed
+        };
+
+        const tableColumns = columns.map(col => col.column_name.toLowerCase());
+
+        if (expectedColumns[name]) {
+          const missingColumns = expectedColumns[name].filter(col => !tableColumns.includes(col.toLowerCase()));
+
+          if (missingColumns.length > 0) {
+            let errorMessage = `Table "${name}" is missing required columns: ${missingColumns.join(', ')}.`;
+            throw new Error(errorMessage);
+            return;
+          }
+        }
+
+        self.tables = self.tables.filter(t => t.name !== name);
+        await self.$conn.query(`DROP TABLE IF EXISTS ${name};`);
+        await self.$conn.query(`
+            CREATE TABLE ${name} AS
+            SELECT * FROM raw_${name};
+          `);
+
+        // Drop the raw table after updating the target table
+        await self.$conn.query(`DROP TABLE IF EXISTS raw_${name};`);
+
+        self.selectTable(name);
+        // Copy data to appropriate rows based on table name
+        if (name === 'WeeklyWorkSheet') {
+          const dataQuery = await self.$conn.prepare(`SELECT * FROM ${name}`);
+          const dataResult = await dataQuery.query();
+          self.rows1 = JSON.parse(JSON.stringify(dataResult.toArray()));
+          self.fileWorksheet();
+        } else {
+          const dataQuery = await self.$conn.prepare(`SELECT * FROM ${name}`);
+          const dataResult = await dataQuery.query();
+          self.rows2 = JSON.parse(JSON.stringify(dataResult.toArray()));
+        }
         self.tables.push({
           name: name, header: 'root', toggle: false, length: len, children: columns.map((obj) => {
             let icon = 'tag'
@@ -559,10 +630,252 @@ export default defineComponent({
             return {label: obj['column_name'], icon: icon, header: 'generic'}
           })
         })
+        self.$q.notify({type: 'positive', message: `Table "${name}" ${tableExists ? 'replaced' : 'created'} successfully`, position: 'top'});
+      } catch (error) {
+        console.error('Error processing CSV:', error);
+        self.$q.notify({type: 'negative', message: `Error processing CSV: ${error.message}`, position: 'top'});
+      } finally {
         self.$q.loading.hide();
         self.counter++;
       }
     },
+
+    async fileSharedRoute(){
+      for (let i = 0; i < this.rows1.length; i++) {
+        const currentRow = this.rows1[i];
+        this.rows1[i]['rowID'] = i;
+        this.rows1[i]['Shared Route'] = false;
+        // Check if this is a potential shared driver row
+        if (!currentRow['Date'] && !currentRow['WA Name'] && currentRow['Driver/ Helper Name']) {
+          let totalRow = this.rows1[i - 1];
+          let j = i;
+          let sumActDelStps = 0;
+          let sumActDelPkgs = 0;
+          let sumActPUStps = 0;
+          let sumActPUPkgs = 0;
+
+          // Look for the end of shared drivers and sum up their values
+          while (j < this.rows1.length && (!this.rows1[j]['Date'] && !this.rows1[j]['WA Name'] && currentRow['Driver/ Helper Name'])) {
+            this.rows1[j]['rowID'] = j;
+            sumActDelStps += parseInt(this.rows1[j]['Act Del Pkgs'] || 0);
+            sumActDelPkgs += parseInt(this.rows1[j]['Act PU Stps'] || 0);
+            sumActPUStps += parseInt(this.rows1[j]['Act PU Pkgs'] || 0);
+            sumActPUPkgs += parseInt(this.rows1[j]['ILS%'] || 0);
+            j++;
+          }
+
+          // Verify if the sum matches the total row
+          if (sumActDelStps === parseInt(totalRow['Act Del Stps'] || 0) &&
+              sumActDelPkgs === parseInt(totalRow['Act Del Pkgs'] || 0) &&
+              sumActPUStps === parseInt(totalRow['Act PU Stps'] || 0) &&
+              sumActPUPkgs === parseInt(totalRow['Act PU Pkgs'] || 0)) {
+
+            this.rows1[i - 1]['Shared Route'] = true;
+            this.rows1[i - 1]['Driver/ Helper Name'] = "%SHARED ROUTE%";
+            // Correct shared driver rows and add their indices
+            for (let k = i; k < j && k < this.rows1.length; k++) {
+              this.rows1[k]['Date'] = totalRow['Date'];
+              this.rows1[k]['WA Name'] = totalRow['WA Name'];
+              this.rows1[k]['Act Del Stps'] = parseInt(this.rows1[k]['Act Del Pkgs'] || 0);
+              this.rows1[k]['Act Del Pkgs'] = parseInt(this.rows1[k]['Act PU Stps'] || 0);
+              this.rows1[k]['Act PU Stps'] = parseInt(this.rows1[k]['Act PU Pkgs'] || 0);
+              this.rows1[k]['Act PU Pkgs'] = parseInt(this.rows1[k]['ILS%'] || 0);
+              this.rows1[k]['ILS%'] = 0;
+              this.rows1[k]['Shared Route'] = true;
+            }
+            i = j - 1;  // Move to the last processed row
+          }
+        }
+      }
+      // store to duckdb table named filled_worksheet
+    // Store rows1 data into a new table named filled_worksheet, filtering out rows with empty 'Driver/ Helper Name'
+
+
+      this.$db.registerFileText("filled_worksheet.json", JSON.stringify(this.rows1));
+      await this.$conn.query(`DROP TABLE IF EXISTS filled_worksheet;`)
+      await this.$conn.insertJSONFromPath("filled_worksheet.json", { name: "filled_worksheet", create: true})
+
+      // Fetch the updated data back into rows1 Date	WA Name	Svc Area #	Driver/ Helper Name	WA#	Act Del Stps	Act Del Pkgs	Act PU Stps	Act PU Pkgs
+      const result = await this.$conn.query(`SELECT Date, "WA Name", "Svc Area #", "Driver/ Helper Name", "WA#", "Act Del Stps", "Act Del Pkgs", "Act PU Stps", "Act PU Pkgs", "Shared Route" FROM filled_worksheet where "Driver/ Helper Name" != '' ORDER BY rowID ASC;`);
+      this.rows3 = JSON.parse(JSON.stringify(result.toArray()));
+
+      // Query the filled_worksheet Fetch shared route rows and driver rows index
+      // Query to fetch shared route rows and driver rows index
+      for (let i = 0; i < this.rows3.length; i++) {
+        if (this.rows3[i]['Shared Route']) {
+          if (this.rows3[i]['Driver/ Helper Name'] === '%SHARED ROUTE%') {
+            this.shared_route_row_index.push(i);
+          } else {
+            this.shared_route_driver_index.push(i);
+          }
+        }
+
+      }
+    },
+
+    async notifyUnmatchedNames(){
+      const filledWorksheetNames = await this.$conn.query(`
+          SELECT DISTINCT "Driver/ Helper Name"
+          FROM filled_worksheet
+          WHERE "Driver/ Helper Name" != '%SHARED ROUTE%'
+        `);
+
+        // Get names from PayrollRate table
+        const payrollRateNames = await this.$conn.query(`
+          SELECT "Fedex Name" AS name FROM PayrollRate
+          UNION
+          SELECT "Name" AS name FROM PayrollRate
+        `);
+
+        // Find names in filled_worksheet that don't exist in PayrollRate
+        const unmatchedNames = filledWorksheetNames.toArray().filter(worksheetName => {
+          if (worksheetName['Driver/ Helper Name'] === '%SHARED ROUTE%') {
+            return false; // Exclude SHARED ROUTE from unmatched names
+          }
+          return !payrollRateNames.toArray().some(payrollName =>
+            payrollName.name.toLowerCase() === worksheetName['Driver/ Helper Name'].toLowerCase()
+          );
+        });
+
+        if (unmatchedNames.length > 0) {
+          console.log('Unmatched names:', unmatchedNames);
+
+          // Notify user about unmatched names
+          const unmatchedNamesString = unmatchedNames.map(name => name['Driver/ Helper Name']).join(', ');
+          this.$q.notify({
+            message: `The following names from the worksheet are not found in the PayrollRate table: ${unmatchedNamesString}`,
+            color: 'warning',
+            position: 'top',
+            timeout: 5
+          });
+        }
+      },
+
+    async fileFedexIDAndSalary() {
+      if (this.rows2.length > 0) {
+        // Get unique names from filled_worksheet
+        await this.notifyUnmatchedNames();
+        // Join filled_worksheet with PayrollRate based on matched names, including aliases
+        await this.$conn.query(`DROP TABLE IF EXISTS final_report;`)
+        const joinedQuery = `
+          CREATE TABLE final_report AS
+          SELECT
+            fw."Date",
+            fw."WA Name",
+            fw."Svc Area #",
+            fw."Driver/ Helper Name",
+            fw."WA#",
+            fw."Act Del Stps",
+            fw."Act Del Pkgs",
+            fw."Act PU Stps",
+            fw."Act PU Pkgs",
+            fw."Shared Route",
+            CASE
+              WHEN LOWER(fw."Driver/ Helper Name") = '%shared route%' THEN NULL
+              ELSE pr."FEDEX ID"
+            END AS "Fedex ID",
+            CASE
+              WHEN LOWER(fw."Driver/ Helper Name") = '%shared route%' THEN NULL
+              ELSE pr."Rate By Day"
+            END AS "Rate By Day",
+            CASE
+              WHEN LOWER(fw."Driver/ Helper Name") = '%shared route%' THEN NULL
+              ELSE pr."Rate By Week"
+            END AS "Rate By Week"
+          FROM
+            filled_worksheet fw
+          LEFT JOIN
+            PayrollRate pr ON
+              LOWER(fw."Driver/ Helper Name") = LOWER(pr."FEDEX NAME") OR
+              LOWER(fw."Driver/ Helper Name") = LOWER(pr."NAME") OR
+              LOWER(fw."Driver/ Helper Name") = '%SHARED ROUTE%'
+          WHERE "Driver/ Helper Name" != ''
+          ORDER BY
+            fw.rowID;
+        `;
+        console.log(joinedQuery);
+        await this.$conn.query(joinedQuery);
+
+        // Fetch data from the materialized table
+        const result = await this.$conn.query('SELECT * FROM final_report');
+
+        // Update rows3 with the result from the materialized table
+        this.rows3 = JSON.parse(JSON.stringify(result.toArray()));
+        console.log(this.rows3);
+      }
+    },
+    async generateReport() {
+      try {
+        // SQL query to calculate weekly salaries
+        const weeklyReportQuery = `
+          SELECT
+            "Driver/ Helper Name",
+            COUNT(DISTINCT "Date") AS "COUNTA of Date",
+            '$' || PRINTF('%.2f',
+              CASE
+                WHEN MAX(
+                  CASE
+                    WHEN "Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE("Rate By Week", '$', ''), ',', '') AS REAL)
+                    WHEN "Rate By Week" LIKE '%.%' THEN CAST("Rate By Week" AS REAL)
+                    ELSE CAST("Rate By Week" AS REAL)
+                  END
+                ) > 0
+                THEN MAX(
+                  CASE
+                    WHEN "Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE("Rate By Week", '$', ''), ',', '') AS REAL)
+                    WHEN "Rate By Week" LIKE '%.%' THEN CAST("Rate By Week" AS REAL)
+                    ELSE CAST("Rate By Week" AS REAL)
+                  END
+                )
+                ELSE SUM(
+                  COALESCE(
+                    CASE
+                      WHEN "Rate By Day" LIKE '$%' THEN CAST(REPLACE(REPLACE("Rate By Day", '$', ''), ',', '') AS REAL)
+                      WHEN "Rate By Day" LIKE '%.%' THEN CAST("Rate By Day" AS REAL)
+                      ELSE CAST("Rate By Day" AS REAL)
+                    END
+                  , 0)
+                )
+              END
+            ) AS "SUM of WAGES",
+            LEAST(COUNT(DISTINCT "Date") * 8, 40) AS "REG HRS",
+            PRINTF('%.2f',
+              GREATEST(
+                (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(COUNT(DISTINCT "Date") * 8, 40) * 15)) / (15 * 1.5),
+                0
+              )
+            ) AS "OT",
+            PRINTF('%.2f',
+              LEAST(COUNT(DISTINCT "Date") * 8, 40) +
+              GREATEST(
+                (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(COUNT(DISTINCT "Date") * 8, 40) * 15)) / (15 * 1.5),
+                0
+              )
+            ) AS "TOTAL HRS"
+          FROM final_report
+          WHERE "Driver/ Helper Name" != '%SHARED ROUTE%'
+          GROUP BY "Driver/ Helper Name"
+          ORDER BY "Driver/ Helper Name";
+        `;
+
+        // Execute the query and store the result
+        const result = await this.$conn.query(weeklyReportQuery);
+        this.final_report = JSON.parse(JSON.stringify(result.toArray(), (key, value) =>
+          typeof value === 'bigint' ? value.toString() : value
+        ));
+
+        console.log('Weekly report generated:', this.final_report);
+      } catch (error) {
+        console.error('Error generating report:', error);
+      }
+    },
+
+    async fileWorksheet() {
+      await this.fileSharedRoute();
+      await this.fileFedexIDAndSalary();
+      await this.generateReport();
+    },
+
     async search() {
       this.$q.loading.show();
       try {
@@ -640,7 +953,19 @@ export default defineComponent({
       const blob = new Blob([this.sample_csv], { type: 'text/csv' });
       const file = new File([blob], 'sample.csv', { type: 'text/csv' });
       this.$refs.uploaderref.addFiles([file]);
-    }
+    },
+    getRowClass(rowIndex) {
+      return '';
+      // return this.highlightedRows.includes(rowIndex) ? 'highlighted-row' : ''
+    },
+    getSharedDriverRowClass(rowIndex) {
+      if (this.shared_route_row_index.includes(rowIndex)) {
+        return 'shared-route-row';
+      } else if (this.shared_route_driver_index.includes(rowIndex)) {
+        return 'shared-driver-row';
+      }
+      return '';
+    },
   },
   // async beforeUnmount() {
   //   await this.$conn.close();
@@ -659,5 +984,21 @@ export default defineComponent({
   width: 29rem;
   height: 39rem;
   border-radius: 50px;
+}
+
+.highlighted-row {
+  background-color: #0000ff; /* Changed to blue */
+}
+.shared-route-row {
+  background-color: #b57614; /* Darker yellow for better visibility in dark mode */
+  color: #fbf1c7; /* Light beige for better contrast */
+}
+.shared-driver-row {
+  background-color: #458588; /* Brighter blue for better visibility in dark mode */
+  color: #fbf1c7; /* Light beige for better contrast */
+}
+.shared-route-row td,
+.shared-driver-row td {
+  font-weight: bold; /* Make text bolder for better visibility */
 }
 </style>
