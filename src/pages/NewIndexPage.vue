@@ -610,12 +610,12 @@ export default defineComponent({
           const dataQuery = await self.$conn.prepare(`SELECT * FROM ${name}`);
           const dataResult = await dataQuery.query();
           self.rows1 = JSON.parse(JSON.stringify(dataResult.toArray()));
-          self.fileWorksheet();
         } else {
           const dataQuery = await self.$conn.prepare(`SELECT * FROM ${name}`);
           const dataResult = await dataQuery.query();
           self.rows2 = JSON.parse(JSON.stringify(dataResult.toArray()));
         }
+        self.fileWorksheet();
         self.tables.push({
           name: name, header: 'root', toggle: false, length: len, children: columns.map((obj) => {
             let icon = 'tag'
