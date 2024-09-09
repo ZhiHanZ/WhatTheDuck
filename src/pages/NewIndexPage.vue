@@ -169,7 +169,7 @@
                 class="tw-rounded-lg tw-bg-hara hover:tw-bg-morehara tw-px-3.5 tw-py-1.5 tw-text-sm tw-font-semibold tw-text-black">
           Upload Sample File
         </button>
-        <button @click="download_csv" type="button"
+        <button @click="download_xlsx" type="button"
                 class="tw-rounded-lg tw-bg-hara hover:tw-bg-morehara tw-px-3.5 tw-py-1.5 tw-text-sm tw-font-semibold tw-text-black">
           Download Results
         </button>
@@ -178,15 +178,15 @@
       v-model="activeTab"
       dense
       class="text-grey"
-      active-color="primary"
-      indicator-color="primary"
+      active-color="tw-text-morehara"
+      indicator-color="tw-text-morehara"
       align="justify"
       narrow-indicator
       no-caps
     >
-      <q-tab name="tab1" :label="selection || 'Tab 1'" />
-      <q-tab name="tab2" label="Tab 2" />
-      <q-tab name="tab3" label="Tab 3" />
+      <q-tab name="tab1" :label="selection || 'Tab 1'" class="tw-text-hara" />
+      <q-tab name="tab2" label="Weekly Activity Report" class="tw-text-hara" />
+      <q-tab name="tab3" label="Final Report" class="tw-text-hara" />
     </q-tabs>
 
     <q-tab-panels v-model="activeTab"           dark
@@ -909,6 +909,10 @@ export default defineComponent({
         this.selection = '';
         this.query = '';
         this.rows = [];
+        this.final_report = [];
+        this.rows3 = [];
+        this.shared_route_row_index = [];
+        this.shared_route_driver_index = [];
       } else {
         this.selectTable(this.tables[0].name);
       }
@@ -918,6 +922,8 @@ export default defineComponent({
       e.preventDefault();
       this.$refs.uploaderref.addFiles(e.dataTransfer.files);
     },
+
+
     download_csv() {
       let self = this;
 
@@ -942,6 +948,53 @@ export default defineComponent({
         type: "application/octet-stream"
       }), `${self.selection}.csv`);
     },
+    async download_xlsx() {
+      let self = this;
+
+      // Create workbook and worksheets
+      let wb = XLSX.utils.book_new();
+      let ws1 = XLSX.utils.json_to_sheet(self.final_report);
+      let ws2 = XLSX.utils.json_to_sheet(self.rows3);
+
+      // Add worksheets to workbook
+      XLSX.utils.book_append_sheet(wb, ws1, "Final Report");
+      XLSX.utils.book_append_sheet(wb, ws2, "Weekly Activity Report");
+
+      // Generate XLSX file
+      let wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+
+      // Convert binary string to ArrayBuffer
+      let buf = new ArrayBuffer(wbout.length);
+      let view = new Uint8Array(buf);
+      for (let i = 0; i !== wbout.length; ++i) view[i] = wbout.charCodeAt(i) & 0xFF;
+
+      // Use ExcelJS for styling
+      const ExcelJS = await import('exceljs');
+      let workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buf);
+
+      let worksheet = workbook.getWorksheet('Weekly Activity Report');
+
+      // Apply conditional formatting
+      const sharedRouteStyle = { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } } }; // Yellow
+      const sharedDriverStyle = { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FF00' } } }; // Green
+
+      self.shared_route_row_index.forEach(index => {
+        worksheet.getRow(index + 2).eachCell(cell => {
+          cell.style = sharedRouteStyle;
+        });
+      });
+
+      self.shared_route_driver_index.forEach(index => {
+        worksheet.getRow(index + 2).eachCell(cell => {
+          cell.style = sharedDriverStyle;
+        });
+      });
+
+      // Write to file
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'report.xlsx');
+    },
     openPopUp() {
       this.getStartedDialog = true;
     },
@@ -953,10 +1006,6 @@ export default defineComponent({
       const blob = new Blob([this.sample_csv], { type: 'text/csv' });
       const file = new File([blob], 'sample.csv', { type: 'text/csv' });
       this.$refs.uploaderref.addFiles([file]);
-    },
-    getRowClass(rowIndex) {
-      return '';
-      // return this.highlightedRows.includes(rowIndex) ? 'highlighted-row' : ''
     },
     getSharedDriverRowClass(rowIndex) {
       if (this.shared_route_row_index.includes(rowIndex)) {
