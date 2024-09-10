@@ -9,3 +9,9 @@ TAYLOR ROBERT J,Robert Taylor,7890123,,$1250
 MARTINEZ A LUCIA,Amanda Martinez,6789012,$180,
 ANDERSON C SCOTT,Christopher Anderson,5432109,$165,
 THOMPSON J LYNN,Jessica Thompson,8901234,$160,
+
+
+# Notices:
+# 1. Ensure FedEx Name or Name matches exactly in the weekly worksheet to avoid detection issues.
+# 2. Do not modify the header schema. It must remain exactly as is.
+# 3. Each valid worker entry must include their name, FedEx ID, and either a daily or weekly rate.

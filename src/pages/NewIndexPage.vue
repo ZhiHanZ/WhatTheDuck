@@ -121,6 +121,10 @@
   <q-page class="q-pa-sm tw-bg-dark tw-flex tw-flex-col">
     <q-card-section class="tw-flex-1">
       <div class="tw-flex tw-justify-end tw-mb-3 tw-gap-3">
+        <button @click="downloadSamplePayroll" type="button"
+                class="tw-rounded-lg tw-bg-hara hover:tw-bg-morehara tw-px-3.5 tw-py-1.5 tw-text-sm tw-font-semibold tw-text-black">
+          Download Sample Payroll sheet
+        </button>
         <button @click="download_xlsx" type="button"
                 class="tw-rounded-lg tw-bg-hara hover:tw-bg-morehara tw-px-3.5 tw-py-1.5 tw-text-sm tw-font-semibold tw-text-black">
           Download Results
@@ -377,6 +381,7 @@ import { saveAs } from 'file-saver';
 import { VAceEditor } from 'vue3-ace-editor';
 import './ace-config';
 import sample_csv from '../assets/customers-100.csv?raw';
+import sample_payroll from '../assets/payroll.csv?raw';
 import "vue-easytable/libs/theme-default/index.css";
 import VueEasytable from "vue-easytable";
 
@@ -401,6 +406,7 @@ export default defineComponent({
       tableNameSuggestions: ["table1", "table2", "table3"],
       counter:0,
       sample_csv: ref(sample_csv),
+      sample_payroll: ref(sample_payroll),
       activeTab: 'tab1',
       rows1: [],
       rows2: [],
@@ -938,6 +944,7 @@ export default defineComponent({
         type: "application/octet-stream"
       }), `${self.selection}.csv`);
     },
+
     async download_xlsx() {
       let self = this;
 
@@ -1008,6 +1015,12 @@ export default defineComponent({
       const file = new File([blob], 'sample.csv', { type: 'text/csv' });
       this.$refs.uploaderref.addFiles([file]);
     },
+    downloadSamplePayroll(){
+      const blob = new Blob([this.sample_payroll], { type: 'text/csv' });
+      const file = new File([blob], 'sample_payroll.csv', { type: 'text/csv' });
+      saveAs(file, 'sample_payroll.csv');
+    },
+
     getSharedDriverRowClass(rowIndex) {
       if (this.shared_route_row_index.includes(rowIndex)) {
         return 'shared-route-row';
