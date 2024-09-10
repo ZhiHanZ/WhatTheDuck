@@ -119,59 +119,15 @@
     </template>
   </q-uploader>
   <q-page class="q-pa-sm tw-bg-dark tw-flex tw-flex-col">
-    <!-- <q-card-section class="tw-flex-1 tw-flex tw-flex-col">
-      <div v-if="$q.platform.is.mobile">
-        <button type="button" class="tw-py-2 tw-px-6 tw-border-hara tw-bg-transparent q-mb-md tw-text-hara tw-rounded-lg tw-border-2" @click="openDrawer=true" no-caps>Upload</button>
-      </div>
-      <div class="tw-h-10 tw-bg-editorborder tw-rounded-t-xl tw-flex tw-items-center tw-justify-between">
-        <span class="tw-text-base tw-text-white tw-ml-3 tw-font-normal">SQL Editor</span>
-        <span v-if="selection!==''" class="tw-text-base tw-text-hara tw-mr-3 tw-font-normal tw-overflow-hidden">{{
-            selection
-          }}</span>
-      </div>
-      <VAceEditor
-        class="dd-scroll"
-        v-model:value="query"
-        ref="editor"
-        lang="sql"
-        :options="{
-        useWorker: true,
-        enableBasicAutocompletion: true,
-        enableSnippets: true,
-        enableLiveAutocompletion: true,
-        customScrollbar: true,
-        fontSize:'1rem'
-      }"
-        :key="counter"
-        @init="initializeEditor"
-        theme="twilight"
-        style="flex: 1 1 0%; min-height:9rem;"
-      />
-      <div class="tw-flex tw-border-t tw-border-editorborder">
-        <div class="tw-h-10 tw-bg-twilightbg tw-rounded-bl-xl tw-flex tw-items-center" :class="$q.platform.is.desktop ? 'tw-w-10/12' : 'tw-w-9/12'">
-        </div>
-        <div @click="search"
-             class="tw-h-10 tw-bg-twilightbg hover:tw-bg-tertiarybg tw-rounded-br-xl tw-flex tw-items-center tw-justify-center tw-border-l tw-border-editorborder" :class="$q.platform.is.desktop ? 'tw-w-2/12': 'tw-w-3/12'">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-               stroke="currentColor" class="tw-w-6 tw-h-6 tw-text-hara">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/>
-          </svg>
-          <span class="tw-text-sm tw-text-white tw-font-normal" :class="$q.platform.is.desktop ? 'tw-ml-3' : 'tw-ml-2'">Run</span>
-
-        </div>
-      </div>
-
-    </q-card-section> -->
     <q-card-section class="tw-flex-1">
       <div class="tw-flex tw-justify-end tw-mb-3 tw-gap-3">
-        <button @click="uploadSampleFile" type="button"
-                class="tw-rounded-lg tw-bg-hara hover:tw-bg-morehara tw-px-3.5 tw-py-1.5 tw-text-sm tw-font-semibold tw-text-black">
-          Upload Sample File
-        </button>
         <button @click="download_xlsx" type="button"
                 class="tw-rounded-lg tw-bg-hara hover:tw-bg-morehara tw-px-3.5 tw-py-1.5 tw-text-sm tw-font-semibold tw-text-black">
           Download Results
+        </button>
+        <button @click="openAddWorkingDatesDialog" type="button"
+                class="tw-rounded-lg tw-bg-hara hover:tw-bg-morehara tw-px-3.5 tw-py-1.5 tw-text-sm tw-font-semibold tw-text-black">
+          Add Working Dates
         </button>
       </div>
       <q-tabs
@@ -343,7 +299,6 @@
                 <q-btn v-else size="xs" :icon="btnProps.icon" color="white" flat round dense @click="onClick" />
               </template>
               <q-carousel-slide name="step_1"  class="column no-wrap flex-center">
-                <!-- <q-icon name="style" size="56px" /> -->
                  <img src="step1.png" class="tw-w-full tw-h-full">
                  <div class="q-mt-md text-center tw-text-hara tw-text-base">
                     {{ step_1 }}
@@ -351,35 +306,23 @@
 
               </q-carousel-slide>
               <q-carousel-slide name="step_2" class="column no-wrap flex-center">
-                <!-- <q-icon name="live_tv" size="56px" /> -->
-                <img src="step2.png" class="tw-w-full cursor-pointer" @click="enlargeImage('step2.png')">
+                <img src="step2.png" class="tw-w-full ">
                 <div class="q-mt-md text-center tw-text-hara tw-text-base">
                   {{ step_2 }}
                 </div>
               </q-carousel-slide>
               <q-carousel-slide name="step_3" class="column no-wrap flex-center">
-                <!-- <q-icon name="layers" size="56px" /> -->
                 <div class="q-mt-md text-center tw-text-hara tw-text-base">
                   {{ step_3 }}
                 </div>
               </q-carousel-slide>
               <q-carousel-slide name="step_4" class="column no-wrap flex-center">
-                <!-- <q-icon name="terrain" size="56px" /> -->
                 <div class="q-mt-md text-center tw-text-hara tw-text-base">
                   {{ step_4 }}
                 </div>
               </q-carousel-slide>
             </q-carousel>
           </div>
-          <!-- <div class="row full-width justify-center tw-text-3xl tw-font-bold">
-            Welcome!  🎉
-          </div> -->
-          <!-- <div class="row full-width justify-center tw-text-lg tw-mt-6">
-            Unlock the power of lightning-fast analytics and data
-          </div>
-          <div class="row full-width justify-center tw-text-lg">
-            processing with QuackDB, your ultimate data tool.
-          </div> -->
         </q-card-section>
         <q-card-actions class="justify-center tw-pb-lg" style="padding-top:20px">
           <button
@@ -390,16 +333,52 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Add Working Dates Dialog -->
+    <q-dialog v-model="addWorkingDatesDialog" persistent>
+      <q-card style="min-width: 350px" class="tw-bg-editorborder">
+        <q-card-section>
+          <div class="text-h6 tw-text-primarytext">Add Working Dates</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-select
+            v-model="selectedDriver"
+            :options="driverOptions"
+            label="Select Driver"
+            class="q-mb-md"
+            dark
+            outlined
+          />
+          <q-select
+            v-model="selectedDates"
+            :options="availableDates"
+            label="Select Dates"
+            multiple
+            use-chips
+            dark
+            outlined
+          />
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Add" @click="addWorkingDates" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script>
-import {defineComponent, ref} from 'vue'
+import { defineComponent, ref } from 'vue'
 import * as XLSX from 'xlsx/xlsx.mjs';
-import {saveAs} from 'file-saver';
-import {VAceEditor} from 'vue3-ace-editor';
+import { saveAs } from 'file-saver';
+import { VAceEditor } from 'vue3-ace-editor';
 import './ace-config';
 import sample_csv from '../assets/customers-100.csv?raw';
+import "vue-easytable/libs/theme-default/index.css";
+import VueEasytable from "vue-easytable";
 
 export default defineComponent({
   name: 'NewIndexPage',
@@ -430,11 +409,17 @@ export default defineComponent({
       rows3: [],
       shared_route_row_index: [],
       shared_route_driver_index: [],
-      highlightedRows: [1, 3, 5] // List of row numbers to highlight (0-based index)
+      highlightedRows: [1, 3, 5], // List of row numbers to highlight (0-based index)
+      addWorkingDatesDialog: ref(false),
+      selectedDriver: ref(null),
+      selectedDates: ref([]),
+      driverOptions: [],
+      availableDates: [],
     }
   },
   components: {
     VAceEditor,
+    VueEasytable,
   },
   async created() {
     this.openPopUp();
@@ -763,16 +748,16 @@ export default defineComponent({
         const joinedQuery = `
           CREATE TABLE final_report AS
           SELECT
-            fw."Date",
-            fw."WA Name",
-            fw."Svc Area #",
-            fw."Driver/ Helper Name",
-            fw."WA#",
-            fw."Act Del Stps",
-            fw."Act Del Pkgs",
-            fw."Act PU Stps",
-            fw."Act PU Pkgs",
-            fw."Shared Route",
+            fw."Date" as "Date",
+            fw."WA Name" as "WA Name",
+            fw."Svc Area #" as "Svc Area #",
+            fw."Driver/ Helper Name" as "Driver/ Helper Name",
+            fw."WA#" as "WA#",
+            fw."Act Del Stps" as "Act Del Stps",
+            fw."Act Del Pkgs" as "Act Del Pkgs",
+            fw."Act PU Stps" as "Act PU Stps",
+            fw."Act PU Pkgs" as "Act PU Pkgs",
+            fw."Shared Route" as "Shared Route",
             CASE
               WHEN LOWER(fw."Driver/ Helper Name") = '%shared route%' THEN NULL
               ELSE pr."FEDEX ID"
@@ -784,7 +769,8 @@ export default defineComponent({
             CASE
               WHEN LOWER(fw."Driver/ Helper Name") = '%shared route%' THEN NULL
               ELSE pr."Rate By Week"
-            END AS "Rate By Week"
+            END AS "Rate By Week",
+            false AS "Manipulated"
           FROM
             filled_worksheet fw
           LEFT JOIN
@@ -854,7 +840,8 @@ export default defineComponent({
                 (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(COUNT(DISTINCT "Date") * 8, 40) * 15)) / (15 * 1.5),
                 0
               )
-            ) AS "TOTAL HRS"
+            ) AS "TOTAL HRS",
+            MAX(CASE WHEN "Manipulated" = true THEN 1 ELSE 0 END) AS "Manipulated"
           FROM final_report
           WHERE "Driver/ Helper Name" != '%SHARED ROUTE%'
           GROUP BY "Driver/ Helper Name"
@@ -981,7 +968,7 @@ export default defineComponent({
       // Apply conditional formatting
       const sharedRouteStyle = { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } } }; // Yellow
       const sharedDriverStyle = { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FF00' } } }; // Green
-
+      const manipulatedStyle = { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } } }; // Orange
       self.shared_route_row_index.forEach(index => {
         worksheet.getRow(index + 2).eachCell(cell => {
           cell.style = sharedRouteStyle;
@@ -993,6 +980,17 @@ export default defineComponent({
           cell.style = sharedDriverStyle;
         });
       });
+
+     for (let i = 0; i < self.rows3.length; i++) {
+        if (self.rows3[i]['Manipulated'] === true || self.rows3[i]['Manipulated'] === 1) {
+          worksheet.getRow(i + 2).eachCell(cell => {
+            cell.style = manipulatedStyle;
+          });
+        }
+      }
+
+
+
 
       // Write to file
       const buffer = await workbook.xlsx.writeBuffer();
@@ -1018,6 +1016,187 @@ export default defineComponent({
       }
       return '';
     },
+    async openAddWorkingDatesDialog() {
+      this.addWorkingDatesDialog = true;
+      this.selectedDriver = null;
+      this.selectedDates = [];
+
+      // Populate driver options
+      this.driverOptions = [...new Set(this.rows3
+        .filter(row => row['Driver/ Helper Name'] !== '%SHARED ROUTE%')
+        .map(row => row['Driver/ Helper Name']))]
+        .map(driverName => ({
+          label: driverName,
+          value: driverName
+        }));
+
+      // Fetch all unique dates from the final_report table
+      const result = await this.$conn.query(`
+        SELECT DISTINCT Date
+        FROM final_report
+        ORDER BY Date
+      `);
+
+      this.availableDates = result.toArray().map(row => ({
+        label: row.Date,
+        value: row.Date
+      }));
+    },
+    async addWorkingDates() {
+      if (!this.selectedDriver || this.selectedDates.length === 0) return;
+
+      const driver = this.selectedDriver.value;
+      const dates = this.selectedDates.map(date => date.value); // Extract just the date values
+
+      try {
+        // Find an existing row for the driver to copy data from
+        const existingRow = this.rows3.find(row => row['Driver/ Helper Name'] === driver);
+        if (!existingRow) {
+          throw new Error('No existing data found for the selected driver');
+        }
+
+        // Prepare the INSERT statement
+        const stmt = await this.$conn.prepare(`
+          INSERT INTO final_report (
+            "Date", "WA Name", "Svc Area #", "Driver/ Helper Name", "WA#",
+            "Act Del Stps", "Act Del Pkgs", "Act PU Stps", "Act PU Pkgs",
+            "Shared Route", "Fedex ID", "Rate By Day", "Rate By Week", "Manipulated"
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        // Execute the INSERT for each selected date
+        const newRows = [];
+        for (const date of dates) {
+          await stmt.query(
+            date,
+            existingRow['WA Name'] || '',
+            existingRow['Svc Area #'] || '',
+            driver,
+            existingRow['WA#'] || '',
+            0, // Act Del Stps
+            0, // Act Del Pkgs
+            0, // Act PU Stps
+            0, // Act PU Pkgs
+            false, // Shared Route
+            existingRow['Fedex ID'] || '',
+            existingRow['Rate By Day'] || null,
+            existingRow['Rate By Week'] || null,
+            true // Manipulated
+          );
+
+          // Add the new row to our local data
+          newRows.push({
+            Date: date,
+            "WA Name": existingRow['WA Name'] || '',
+            "Svc Area #": existingRow['Svc Area #'] || '',
+            "Driver/ Helper Name": driver,
+            "WA#": existingRow['WA#'] || '',
+            "Act Del Stps": 0,
+            "Act Del Pkgs": 0,
+            "Act PU Stps": 0,
+            "Act PU Pkgs": 0,
+            "Shared Route": false,
+            "Fedex ID": existingRow['Fedex ID'] || '',
+            "Rate By Day": existingRow['Rate By Day'] || null,
+            "Rate By Week": existingRow['Rate By Week'] || null,
+            "Manipulated": true
+          });
+        }
+
+        // Update local data
+        this.rows3 = [...this.rows3, ...newRows];
+
+        // Update final_report data
+        await this.updateFinalReport();
+
+        this.$q.notify({
+          type: 'positive',
+          message: 'Working dates added successfully',
+          position: 'top'
+        });
+      } catch (error) {
+        console.error('Error adding working dates:', error);
+        this.$q.notify({
+          type: 'negative',
+          message: 'Error adding working dates: ' + error.message,
+          position: 'top'
+        });
+      }
+    },
+
+    async updateFinalReport() {
+      try {
+        // SQL query to calculate weekly salaries
+        const weeklyReportQuery = `
+          WITH distinct_days AS (
+            SELECT "Driver/ Helper Name", COUNT(DISTINCT "Date") AS distinct_days, MAX("Manipulated") AS max_manipulated
+            FROM final_report
+            WHERE "Driver/ Helper Name" != '%SHARED ROUTE%'
+            GROUP BY "Driver/ Helper Name"
+          )
+          SELECT
+            fr."Driver/ Helper Name",
+            dd.distinct_days AS "COUNTA of Date",
+            '$' || PRINTF('%.2f',
+              CASE
+                WHEN MAX(
+                  CASE
+                    WHEN fr."Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE(fr."Rate By Week", '$', ''), ',', '') AS REAL)
+                    WHEN fr."Rate By Week" LIKE '%.%' THEN CAST(fr."Rate By Week" AS REAL)
+                    ELSE CAST(fr."Rate By Week" AS REAL)
+                  END
+                ) > 0
+                THEN MAX(
+                  CASE
+                    WHEN fr."Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE(fr."Rate By Week", '$', ''), ',', '') AS REAL)
+                    WHEN fr."Rate By Week" LIKE '%.%' THEN CAST(fr."Rate By Week" AS REAL)
+                    ELSE CAST(fr."Rate By Week" AS REAL)
+                  END
+                )
+                ELSE SUM(
+                  COALESCE(
+                    CASE
+                      WHEN fr."Rate By Day" LIKE '$%' THEN CAST(REPLACE(REPLACE(fr."Rate By Day", '$', ''), ',', '') AS REAL)
+                      WHEN fr."Rate By Day" LIKE '%.%' THEN CAST(fr."Rate By Day" AS REAL)
+                      ELSE CAST(fr."Rate By Day" AS REAL)
+                    END
+                  , 0)
+                )
+              END
+            ) AS "SUM of WAGES",
+            LEAST(dd.distinct_days * 8, 40) AS "REG HRS",
+            PRINTF('%.2f',
+              GREATEST(
+                (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(dd.distinct_days * 8, 40) * 15)) / (15 * 1.5),
+                0
+              )
+            ) AS "OT",
+            PRINTF('%.2f',
+              LEAST(dd.distinct_days * 8, 40) +
+              GREATEST(
+                (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(dd.distinct_days * 8, 40) * 15)) / (15 * 1.5),
+                0
+              )
+            ) AS "TOTAL HRS",
+            dd.max_manipulated AS "Manipulated"
+          FROM final_report fr
+          JOIN distinct_days dd ON fr."Driver/ Helper Name" = dd."Driver/ Helper Name"
+          GROUP BY fr."Driver/ Helper Name", dd.distinct_days, dd.max_manipulated
+          ORDER BY fr."Driver/ Helper Name";
+        `;
+
+        // Execute the query and store the result
+        const result = await this.$conn.query(weeklyReportQuery);
+        this.final_report = JSON.parse(JSON.stringify(result.toArray(), (key, value) =>
+          typeof value === 'bigint' ? value.toString() : value
+        ));
+
+        console.log('Weekly report updated:', this.final_report);
+      } catch (error) {
+        console.error('Error updating final report:', error);
+        throw error;
+      }
+    }
   },
   // async beforeUnmount() {
   //   await this.$conn.close();
