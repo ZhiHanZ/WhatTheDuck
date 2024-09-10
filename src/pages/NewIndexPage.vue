@@ -318,12 +318,9 @@
     </div>
 
     <q-dialog v-model="getStartedDialog">
-      <q-card class="get-started-card tw-bg-editorborder tw-px-10">
-        <img src="/welcome-duck.png" alt="duck">
-        <div class="row full-width text-center tw-text-primarytext tw-text-3xl tw-font-bold">
-            In Browser Simple payroll compute
-                      </div>
-        <q-card-section class="tw-text-primarytext" style="padding:0 20px 0 20px">
+      <q-card class="get-started-card tw-bg-editorborder ">
+
+        <q-card-section class="tw-text-primarytext" style="padding:20px 0px 0 0px">
           <div>
             <q-carousel
               v-model="slide"
@@ -338,21 +335,24 @@
               navigation
               padding
               arrows
-              height="200px"
+              height="500px"
               class="tw-bg-editorborder text-white rounded-borders"
             >
               <template v-slot:navigation-icon="{ active, btnProps, onClick }">
                 <q-btn v-if="active" size="sm" icon="radio_button_checked" class="tw-text-hara" flat round dense @click="onClick" />
                 <q-btn v-else size="xs" :icon="btnProps.icon" color="white" flat round dense @click="onClick" />
               </template>
-              <q-carousel-slide name="step_1" class="column no-wrap flex-center">
+              <q-carousel-slide name="step_1"  class="column no-wrap flex-center">
                 <!-- <q-icon name="style" size="56px" /> -->
-                <div class="q-mt-md text-center tw-text-hara tw-text-base">
-                  {{ step_1 }}
-                </div>
+                 <img src="step1.png" class="tw-w-full tw-h-full">
+                 <div class="q-mt-md text-center tw-text-hara tw-text-base">
+                    {{ step_1 }}
+                  </div>
+
               </q-carousel-slide>
               <q-carousel-slide name="step_2" class="column no-wrap flex-center">
                 <!-- <q-icon name="live_tv" size="56px" /> -->
+                <img src="step2.png" class="tw-w-full cursor-pointer" @click="enlargeImage('step2.png')">
                 <div class="q-mt-md text-center tw-text-hara tw-text-base">
                   {{ step_2 }}
                 </div>
@@ -381,7 +381,7 @@
             processing with QuackDB, your ultimate data tool.
           </div> -->
         </q-card-section>
-        <q-card-actions class="justify-center tw-pb-lg">
+        <q-card-actions class="justify-center tw-pb-lg" style="padding-top:20px">
           <button
             @click="getStarted()"
             class="tw-bg-hara  tw-px-20 tw-py-3 tw-font-semibold tw-rounded-lg">
@@ -414,10 +414,10 @@ export default defineComponent({
       selection: ref(''),
       getStartedDialog: ref(false),
       slide: ref('step_1'),
-      step_1: ref('Upload multiple csv files to run sql queries'),
-      step_2: ref("Smart editor to write SQL queries"),
-      step_3: ref("Run SQL queries to analyze data"),
-      step_4: ref("Download the query result in csv format"),
+      step_1: ref('Upload current payroll wage policy'),
+      step_2: ref("Upload current weekly service worksheet(download from MGBA)"),
+      step_3: ref("Check on activity entry and final report"),
+      step_4: ref("Download the summarized report in one click"),
       openDrawer: ref(false),
       tableNameSuggestions: ["table1", "table2", "table3"],
       counter:0,
@@ -610,12 +610,15 @@ export default defineComponent({
           const dataQuery = await self.$conn.prepare(`SELECT * FROM ${name}`);
           const dataResult = await dataQuery.query();
           self.rows1 = JSON.parse(JSON.stringify(dataResult.toArray()));
+          self.fileWorksheet();
         } else {
           const dataQuery = await self.$conn.prepare(`SELECT * FROM ${name}`);
           const dataResult = await dataQuery.query();
           self.rows2 = JSON.parse(JSON.stringify(dataResult.toArray()));
+          if (self.rows2.length > 0 && self.rows1.length > 0) {
+            self.fileWorksheet();
+          }
         }
-        self.fileWorksheet();
         self.tables.push({
           name: name, header: 'root', toggle: false, length: len, children: columns.map((obj) => {
             let icon = 'tag'
@@ -1030,7 +1033,7 @@ export default defineComponent({
 }
 
 .get-started-card {
-  width: 29rem;
+  width: 50rem;
   height: 39rem;
   border-radius: 50px;
 }
