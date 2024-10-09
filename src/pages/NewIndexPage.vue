@@ -801,56 +801,66 @@ export default defineComponent({
     },
     async generateReport() {
       try {
-        // SQL query to calculate weekly salaries
-        const weeklyReportQuery = `
+        await this.$conn.query('DROP TABLE IF EXISTS date_count;');
+        // Step 1: Create a table with count of distinct dates, Manipulated status, and rates
+        const createCountTable = `
+          CREATE TABLE date_count AS
           SELECT
             "Driver/ Helper Name",
             COUNT(DISTINCT "Date") AS "COUNTA of Date",
+            MAX(CASE WHEN "Manipulated" = true THEN 1 ELSE 0 END) AS "Manipulated",
+            MAX(CASE
+              WHEN "Rate By Day" LIKE '$%' THEN CAST(REPLACE(REPLACE("Rate By Day", '$', ''), ',', '') AS REAL)
+              WHEN "Rate By Day" LIKE '%.%' THEN CAST("Rate By Day" AS REAL)
+              ELSE CAST("Rate By Day" AS REAL)
+            END) AS "Rate By Day",
+            MAX(CASE
+              WHEN "Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE("Rate By Week", '$', ''), ',', '') AS REAL)
+              WHEN "Rate By Week" LIKE '%.%' THEN CAST("Rate By Week" AS REAL)
+              ELSE CAST("Rate By Week" AS REAL)
+            END) AS "Rate By Week"
+          FROM final_report
+          WHERE "Driver/ Helper Name" != '%SHARED ROUTE%'
+          GROUP BY "Driver/ Helper Name";
+        `;
+        await this.$conn.query(createCountTable);
+
+        // Step 2: SQL query to calculate weekly salaries and other fields
+        const weeklyReportQuery = `
+          SELECT
+            "Driver/ Helper Name",
+            "COUNTA of Date",
             '$' || PRINTF('%.2f',
               CASE
-                WHEN MAX(
-                  CASE
-                    WHEN "Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE("Rate By Week", '$', ''), ',', '') AS REAL)
-                    WHEN "Rate By Week" LIKE '%.%' THEN CAST("Rate By Week" AS REAL)
-                    ELSE CAST("Rate By Week" AS REAL)
-                  END
-                ) > 0
-                THEN MAX(
-                  CASE
-                    WHEN "Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE("Rate By Week", '$', ''), ',', '') AS REAL)
-                    WHEN "Rate By Week" LIKE '%.%' THEN CAST("Rate By Week" AS REAL)
-                    ELSE CAST("Rate By Week" AS REAL)
-                  END
-                )
-                ELSE SUM(
-                  COALESCE(
-                    CASE
-                      WHEN "Rate By Day" LIKE '$%' THEN CAST(REPLACE(REPLACE("Rate By Day", '$', ''), ',', '') AS REAL)
-                      WHEN "Rate By Day" LIKE '%.%' THEN CAST("Rate By Day" AS REAL)
-                      ELSE CAST("Rate By Day" AS REAL)
-                    END
-                  , 0)
-                )
+                WHEN "Rate By Week" > 0
+                THEN "Rate By Week"
+                ELSE "COUNTA of Date" * "Rate By Day"
               END
             ) AS "SUM of WAGES",
-            LEAST(COUNT(DISTINCT "Date") * 8, 40) AS "REG HRS",
+            LEAST("COUNTA of Date" * 8, 40) AS "REG HRS",
             PRINTF('%.2f',
               GREATEST(
-                (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(COUNT(DISTINCT "Date") * 8, 40) * 15)) / (15 * 1.5),
+                (CASE
+                  WHEN "Rate By Week" > 0
+                  THEN "Rate By Week"
+                  ELSE "COUNTA of Date" * "Rate By Day"
+                END - (LEAST("COUNTA of Date" * 8, 40) * 15)) / (15 * 1.5),
                 0
               )
             ) AS "OT",
             PRINTF('%.2f',
-              LEAST(COUNT(DISTINCT "Date") * 8, 40) +
+              LEAST("COUNTA of Date" * 8, 40) +
               GREATEST(
-                (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(COUNT(DISTINCT "Date") * 8, 40) * 15)) / (15 * 1.5),
+                (CASE
+                  WHEN "Rate By Week" > 0
+                  THEN "Rate By Week"
+                  ELSE "COUNTA of Date" * "Rate By Day"
+                END - (LEAST("COUNTA of Date" * 8, 40) * 15)) / (15 * 1.5),
                 0
               )
             ) AS "TOTAL HRS",
-            MAX(CASE WHEN "Manipulated" = true THEN 1 ELSE 0 END) AS "Manipulated"
-          FROM final_report
-          WHERE "Driver/ Helper Name" != '%SHARED ROUTE%'
-          GROUP BY "Driver/ Helper Name"
+            "Manipulated"
+          FROM date_count
           ORDER BY "Driver/ Helper Name";
         `;
 
@@ -861,6 +871,9 @@ export default defineComponent({
         ));
 
         console.log('Weekly report generated:', this.final_report);
+
+        // Clean up: Drop the temporary table
+        await this.$conn.query('DROP TABLE IF EXISTS date_count;');
       } catch (error) {
         console.error('Error generating report:', error);
       }
@@ -1120,7 +1133,7 @@ export default defineComponent({
         this.rows3 = [...this.rows3, ...newRows];
 
         // Update final_report data
-        await this.updateFinalReport();
+        await this.generateReport();
 
         this.$q.notify({
           type: 'positive',
@@ -1137,79 +1150,6 @@ export default defineComponent({
       }
     },
 
-    async updateFinalReport() {
-      try {
-        // SQL query to calculate weekly salaries
-        const weeklyReportQuery = `
-          WITH distinct_days AS (
-            SELECT "Driver/ Helper Name", COUNT(DISTINCT "Date") AS distinct_days, MAX("Manipulated") AS max_manipulated
-            FROM final_report
-            WHERE "Driver/ Helper Name" != '%SHARED ROUTE%'
-            GROUP BY "Driver/ Helper Name"
-          )
-          SELECT
-            fr."Driver/ Helper Name",
-            dd.distinct_days AS "COUNTA of Date",
-            '$' || PRINTF('%.2f',
-              CASE
-                WHEN MAX(
-                  CASE
-                    WHEN fr."Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE(fr."Rate By Week", '$', ''), ',', '') AS REAL)
-                    WHEN fr."Rate By Week" LIKE '%.%' THEN CAST(fr."Rate By Week" AS REAL)
-                    ELSE CAST(fr."Rate By Week" AS REAL)
-                  END
-                ) > 0
-                THEN MAX(
-                  CASE
-                    WHEN fr."Rate By Week" LIKE '$%' THEN CAST(REPLACE(REPLACE(fr."Rate By Week", '$', ''), ',', '') AS REAL)
-                    WHEN fr."Rate By Week" LIKE '%.%' THEN CAST(fr."Rate By Week" AS REAL)
-                    ELSE CAST(fr."Rate By Week" AS REAL)
-                  END
-                )
-                ELSE SUM(
-                  COALESCE(
-                    CASE
-                      WHEN fr."Rate By Day" LIKE '$%' THEN CAST(REPLACE(REPLACE(fr."Rate By Day", '$', ''), ',', '') AS REAL)
-                      WHEN fr."Rate By Day" LIKE '%.%' THEN CAST(fr."Rate By Day" AS REAL)
-                      ELSE CAST(fr."Rate By Day" AS REAL)
-                    END
-                  , 0)
-                )
-              END
-            ) AS "SUM of WAGES",
-            LEAST(dd.distinct_days * 8, 40) AS "REG HRS",
-            PRINTF('%.2f',
-              GREATEST(
-                (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(dd.distinct_days * 8, 40) * 15)) / (15 * 1.5),
-                0
-              )
-            ) AS "OT",
-            PRINTF('%.2f',
-              LEAST(dd.distinct_days * 8, 40) +
-              GREATEST(
-                (CAST(REPLACE(REPLACE("SUM of WAGES", '$', ''), ',', '') AS REAL) - (LEAST(dd.distinct_days * 8, 40) * 15)) / (15 * 1.5),
-                0
-              )
-            ) AS "TOTAL HRS",
-            dd.max_manipulated AS "Manipulated"
-          FROM final_report fr
-          JOIN distinct_days dd ON fr."Driver/ Helper Name" = dd."Driver/ Helper Name"
-          GROUP BY fr."Driver/ Helper Name", dd.distinct_days, dd.max_manipulated
-          ORDER BY fr."Driver/ Helper Name";
-        `;
-
-        // Execute the query and store the result
-        const result = await this.$conn.query(weeklyReportQuery);
-        this.final_report = JSON.parse(JSON.stringify(result.toArray(), (key, value) =>
-          typeof value === 'bigint' ? value.toString() : value
-        ));
-
-        console.log('Weekly report updated:', this.final_report);
-      } catch (error) {
-        console.error('Error updating final report:', error);
-        throw error;
-      }
-    }
   },
   // async beforeUnmount() {
   //   await this.$conn.close();
