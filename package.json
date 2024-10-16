@@ -15,6 +15,8 @@
     "axios": "^0.21.1",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
+    "lodash": "^4.17.21",
+    "lodash.range": "^3.2.0",
     "quasar": "^2.15.1",
     "vue": "^3.0.0",
     "vue-easytable": "^2.27.1",

@@ -377,6 +377,7 @@
 <script>
 import { defineComponent, ref } from 'vue'
 import * as XLSX from 'xlsx/xlsx.mjs';
+import { autofitColumns } from '../utils/utils.js';
 import { saveAs } from 'file-saver';
 import { VAceEditor } from 'vue3-ace-editor';
 import './ace-config';
@@ -932,7 +933,85 @@ export default defineComponent({
       this.$refs.uploaderref.addFiles(e.dataTransfer.files);
     },
 
+    /**
+     * it build json output for excel calendar data
+     *
+     * include driver, pay, Sat(date in number), Sun(date in number), Mon(date in number), Tue(date in number), Wed(date in number), Thu(date in number), Fri(date in number), Total Days
+     * activity report looks like
+     * Date	WA Name	Svc Area #	Driver/ Helper Name	WA#	Act Del Stps	Act Del Pkgs	Act PU Stps	Act PU Pkgs	Shared Route	Fedex ID	Rate By Day	Rate By Week	Manipulated
+20241007	NEXT PACK 09	308906	MEDINA,TIMOTHY ALAN	370	78	227	1		FALSE	6408296	$150		FALSE
+20241011	NEXT PACK 09	308906	SANCHEZ,ALEJANDRO	370	4	72			FALSE	8780131		$1,200	FALSE
+20241007	NEXT PACK 10	308906	GAITAN,EFRAIN FERNANDO	376	58	226	10	96	FALSE	5853051	$160		FALSE
+20241008	NEXT PACK 10	308906	GAITAN,EFRAIN FERNANDO	376	59	236	10	61	FALSE	5853051	$160		FALSE
+20241009	NEXT PACK 10	308906	GAITAN,EFRAIN FERNANDO	376	46	158	12	59	FALSE	5853051	$160		FALSE
+20241010	NEXT PACK 10	308906	GAITAN,EFRAIN FERNANDO	376	57	189	10	128	FALSE	5853051	$160		FALSE
 
+     * @param a activity report
+     * @returns calendar output cover all driver data in calendar include driver, pay, Sat(date in number), Sun(date in number), Mon(date in number), Tue(date in number), Wed(date in number), Thu(date in number), Fri(date in number), Total Days
+     *  if they work in given date, the column will appear Y, otherwise N
+     */
+    build_calendar_json(a){
+       let calendar_report = []
+       let driverMap = new Map()
+       let dayToDate = new Map()
+       for (let i = 0; i < a.length; i++) {
+        let driver = a[i]['Driver/ Helper Name']
+        if (driver === '%SHARED ROUTE%') {
+          continue;
+        }
+        let pay = a[i]['Rate By Day'] || a[i]['Rate By Week']
+        if (a[i]['Date'] === null) {
+          continue;
+        }
+        if (a[i]['Date'] === '') {
+          continue;
+        }
+        let date = new Date(a[i]['Date'].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'))
+        let dayOfWeek = date.getDay()
+        dayToDate.set(dayOfWeek, date)
+
+        if (!driverMap.has(driver)) {
+          driverMap.set(driver, {
+            driver: driver,
+            pay: pay,
+            Sat: 'N',
+            Sun: 'N',
+            Mon: 'N',
+            Tue: 'N',
+            Wed: 'N',
+            Thu: 'N',
+            Fri: 'N',
+            TotalDays: 0
+          })
+        }
+        let driverData = driverMap.get(driver)
+
+        switch(dayOfWeek) {
+          case 0: driverData.Sun = 'Y'; break;
+          case 1: driverData.Mon = 'Y'; break;
+          case 2: driverData.Tue = 'Y'; break;
+          case 3: driverData.Wed = 'Y'; break;
+          case 4: driverData.Thu = 'Y'; break;
+          case 5: driverData.Fri = 'Y'; break;
+          case 6: driverData.Sat = 'Y'; break;
+        }
+       }
+       // loop over driverMap to get total days
+       for (let [driver, driverData] of driverMap) {
+        let totalDays = 0;
+        if (driverData.Sun === 'Y') totalDays++;
+        if (driverData.Mon === 'Y') totalDays++;
+        if (driverData.Tue === 'Y') totalDays++;
+        if (driverData.Wed === 'Y') totalDays++;
+        if (driverData.Thu === 'Y') totalDays++;
+        if (driverData.Fri === 'Y') totalDays++;
+        if (driverData.Sat === 'Y') totalDays++;
+        driverData.TotalDays = totalDays;
+        driverMap.set(driver, driverData);
+       }
+       calendar_report = Array.from(driverMap.values())
+       return {report: calendar_report, dayMap: dayToDate}
+    },
     download_csv() {
       let self = this;
 
@@ -957,22 +1036,48 @@ export default defineComponent({
         type: "application/octet-stream"
       }), `${self.selection}.csv`);
     },
-
+    addDays(date, days) {
+      let result = new Date(date);
+      result.setDate(result.getDate() + days);
+      return result;
+    },
+    formatDate(date) {
+      let year = date.getFullYear();
+      let month = date.getMonth() + 1;
+      let day = date.getDate();
+      return `${year}-${month}-${day}`;
+    },
     async download_xlsx() {
       let self = this;
 
       // Create workbook and worksheets
       let wb = XLSX.utils.book_new();
+      let calendar_res = self.build_calendar_json(self.rows3)
+      let calendar_report = calendar_res.report
+      let dayToDate = calendar_res.dayMap
       let ws1 = XLSX.utils.json_to_sheet(self.final_report);
       let ws2 = XLSX.utils.json_to_sheet(self.rows3);
-
+      let ws3 = XLSX.utils.json_to_sheet(calendar_report);
+      // change  calendar date columns from Sat to Sat(<Date>)
+      // C1 to I1
+      ws3.name = 'Calendar Report'
+      let sunDay = self.addDays(dayToDate.get(6), 1)
+      dayToDate.set(0, sunDay)
+      ws3['C1'].v = 'Sat(' + self.formatDate(dayToDate.get(6)) + ')'
+      ws3['D1'].v = 'Sun(' + self.formatDate(dayToDate.get(0)) + ')'
+      ws3['E1'].v = 'Mon(' + self.formatDate(dayToDate.get(1)) + ')'
+      ws3['F1'].v = 'Tue(' + self.formatDate(dayToDate.get(2)) + ')'
+      ws3['G1'].v = 'Wed(' + self.formatDate(dayToDate.get(3)) + ')'
+      ws3['H1'].v = 'Thu(' + self.formatDate(dayToDate.get(4)) + ')'
+      ws3['I1'].v = 'Fri(' + self.formatDate(dayToDate.get(5)) + ')'
+      autofitColumns(ws3)
       // Add worksheets to workbook
       XLSX.utils.book_append_sheet(wb, ws1, "Final Report");
       XLSX.utils.book_append_sheet(wb, ws2, "Weekly Activity Report");
-
+      XLSX.utils.book_append_sheet(wb, ws3, "Calendar Report");
       // Generate XLSX file
       let wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-
+autofitColumns
       // Convert binary string to ArrayBuffer
       let buf = new ArrayBuffer(wbout.length);
       let view = new Uint8Array(buf);
@@ -982,6 +1087,21 @@ export default defineComponent({
       const ExcelJS = await import('exceljs');
       let workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buf);
+
+      // mark calendar Y to green
+      let calendarSheet = workbook.getWorksheet('Calendar Report')
+      calendarSheet.eachRow(row => {
+        row.eachCell(cell => {
+          if (cell.value === 'Y') {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF90EE90' } // Light green color (Hex: 90EE90)
+            }
+          }
+        })
+      })
+
 
       let worksheet = workbook.getWorksheet('Weekly Activity Report');
 
